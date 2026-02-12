@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Field Work Bonus Tracker</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      --main: #6344c6;
+      --accent: #81e6d9;
+      --bg: #f5f6fa;
+      --white: #fff;
+      --tableHead: #ece9f6;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; background: var(--bg); }
+    .container {
+      max-width: 1400px; margin: 40px auto;
+      padding: 24px; background: var(--white); border-radius: 12px; box-shadow: 0 6px 24px 4px #0001;
+    }
+    .flex { display: flex; gap: 24px; flex-wrap: wrap; align-items: center; }
+    .summary { justify-content: space-between; padding-bottom: 24px; border-bottom: 1px solid #eee; }
+    h1 { color: var(--main); font-weight: 900; letter-spacing: 1px; }
+    h2 { color: var(--main); font-size: 22px; margin-top: 32px; margin-bottom: 16px; }
+    .stat {
+      background: var(--main);
+      color: var(--white);
+      padding: 12px 28px;
+      border-radius: 8px;
+      font-size: 18px;
+      line-height: 1.2;
+      font-weight: 600;
+      margin: 8px 0;
+      min-width: 190px;
+    }
+    .filter-range {
+      margin-top: 16px;
+    }
+    .filter-range label { font-weight: 500; margin-right: 10px; }
+    .filter-range input[type="date"] { padding: 6px 9px; border-radius: 4px; border: 1px solid #ccc; }
+    .actions { justify-content: flex-end; margin-top: 12px; }
+    .btn {
+      background: var(--main);
+      color: var(--white);
+      border: none;
+      padding: 12px 22px;
+      font-size: 17px;
+      letter-spacing: 1px;
+      border-radius: 6px;
+      cursor: pointer;
+      margin-left: 10px;
+      transition: .15s;
+    }
+    .btn:hover { background: #5632b6; }
+    .tab-buttons {
+      display: flex;
+      gap: 10px;
+      margin: 20px 0;
+      border-bottom: 2px solid #eee;
+    }
+    .tab-btn {
+      background: transparent;
+      color: var(--main);
+      border: none;
+      padding: 12px 20px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+      transition: .2s;
+    }
+    .tab-btn.active {
+      border-bottom-color: var(--main);
+      color: var(--main);
+    }
+    .tab-btn:hover { color: #5632b6; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--white);
+      box-shadow: 0 2px 8px #0002;
+      border-radius: 8px;
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+    thead {
+      background: var(--tableHead);
+    }
+    th, td {
+      padding: 10px 10px;
+      text-align: left;
+      font-size: 16px;
+    }
+    th { font-size: 16px; color: var(--main); }
+    td { background: var(--white); }
+    tbody tr:nth-child(even) td { background: #fcfcfc; }
+    tbody tr.summary-row td { background: #f0e8ff; font-weight: 600; color: var(--main); }
+    .actions-col button, .del-btn {
+      background: #ff6592; color: var(--white); border: none; padding: 4px 12px;
+      border-radius: 4px; cursor: pointer; font-size: 13px;
+    }
+    .actions-col button:hover, .del-btn:hover { background: #d9476c; }
+    .add-form, .edit-form {
+      margin-top: 32px; margin-bottom: 24px;
+      background: #f8f8fb;
+      border: 2px solid var(--accent);
+      border-radius: 12px;
+      padding: 25px 18px 8px 18px;
+      max-width: 680px;
+    }
+    .add-form label { font-weight: 600; margin-right: 3px; }
+    .add-row { display: grid; grid-template-columns: 1fr 1fr 1fr 1.2fr 1fr 2fr auto; gap: 12px; margin-bottom: 20px; }
+    .add-row input, .add-row select { padding: 8px 5px; border: 1px solid #ccc; font-size: 15px; border-radius: 4px; }
+    .add-row input[type="number"] { text-align: right; }
+    .breakdown-card {
+      background: #f8f8fb;
+      border-left: 4px solid var(--main);
+      padding: 16px;
+      margin-bottom: 12px;
+      border-radius: 6px;
+    }
+    .breakdown-card h3 { color: var(--main); margin-bottom: 8px; }
+    .breakdown-card p { color: #666; font-size: 14px; }
+    .breakdown-amount { color: var(--main); font-weight: 700; font-size: 18px; }
+    @media (max-width: 800px) {
+      .add-row { grid-template-columns: 1fr 1fr; }
+      table, .summary { font-size: 15px; }
+      .tab-buttons { flex-wrap: wrap; }
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+  <div class="flex summary">
+    <h1>📊 Field Work Bonus Tracker</h1>
+    <div>
+      <div class="stat">YTD Bonus: <span id="ytdBonus">$0.00</span></div>
+      <div class="stat">This Period: <span id="periodBonus">$0.00</span></div>
+    </div>
+  </div>
+
+  <form class="filter-range flex" style="margin-top: 20px;">
+    <label>Filter:</label>
+    <input id="filterStart" type="date" /> -
+    <input id="filterEnd" type="date" />
+    <button class="btn" id="clearFilter" type="button">Clear</button>
+  </form>
+
+  <form class="add-form" id="addForm">
+    <div class="add-row">
+      <input type="date" id="addDate" required />
+      <select id="addClient" required>
+        <option value="">Client ⬇️</option>
+        <option>Halliburton</option>
+        <option>Schlumberger</option>
+        <option>Baker Hughes</option>
+        <option>Other</option>
+      </select>
+      <input type="text" id="addWell" placeholder="Well Name" required />
+      <input type="text" id="addTicket" placeholder="Ticket #" required />
+      <input type="number" id="addBonus" placeholder="Bonus ($)" required min="0" step="0.01" />
+      <input type="text" id="addDay" placeholder="Day" required />
+      <button type="submit" class="btn">+ Add Entry</button>
+    </div>
+  </form>
+
+  <div class="actions flex">
+    <button class="btn" onclick="exportCSV()">Export CSV</button>
+    <button class="btn" onclick="downloadTable()">Download Excel</button>
+  </div>
+
+  <!-- TAB BUTTONS -->
+  <div class="tab-buttons">
+    <button class="tab-btn active" onclick="switchTab('all')">All Entries</button>
+    <button class="tab-btn" onclick="switchTab('weekly')">Weekly Breakdown</button>
+    <button class="tab-btn" onclick="switchTab('monthly')">Monthly Breakdown</button>
+  </div>
+
+  <!-- TAB 1: ALL ENTRIES -->
+  <div id="all" class="tab-content active">
+    <div style="overflow-x: auto;">
+      <table id="bonusTable">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Day</th>
+            <th>Client</th>
+            <th>Well Name</th>
+            <th>Ticket Number</th>
+            <th>Bonus ($)</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody">
+        </tbody>
+        <tfoot>
+          <tr>
+            <th colspan="5" style="text-align: right; color: var(--main);">Period Total:</th>
+            <th id="periodTotal" style="color: var(--main);"></th>
+            <th></th>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+
+  <!-- TAB 2: WEEKLY BREAKDOWN -->
+  <div id="weekly" class="tab-content">
+    <h2>Weekly Breakdown</h2>
+    <div id="weeklyBreakdown"></div>
+  </div>
+
+  <!-- TAB 3: MONTHLY BREAKDOWN -->
+  <div id="monthly" class="tab-content">
+    <h2>Monthly Breakdown</h2>
+    <div id="monthlyBreakdown"></div>
+  </div>
+
+</div>
+
+<script>
+  // ------- DATA LAYER ----------
+  let entries = JSON.parse(localStorage.getItem('fieldBonusEntries') || '[]');
+  const save = () => localStorage.setItem('fieldBonusEntries', JSON.stringify(entries));
+
+  function formatMoney(num) {
+    return '$' + (+num).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  // Get week number from date
+  function getWeekNumber(date) {
+    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+    d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+    const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+    const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+    return weekNo;
+  }
+
+  // Get month name
+  function getMonthName(dateStr) {
+    const date = new Date(dateStr);
+    return date.toLocaleString('default', { month: 'long', year: 'numeric' });
+  }
+
+  // Get week range dates
+  function getWeekDateRange(date, weekNum) {
+    const simple = new Date(date.getFullYear(), 0, 1);
+    const jan4 = new Date(date.getFullYear(), 0, 4);
+    const dayMsFeb4 = 86400000;
+    simple.setTime(jan4.getTime() - simple.getDay() * dayMsFeb4);
+    const weekStart = new Date(simple.getTime() + (weekNum - 1) * 7 * dayMsFeb4);
+    const weekEnd = new Date(weekStart.getTime() + 6 * dayMsFeb4);
+    return {
+      start: weekStart.toISOString().split('T')[0],
+      end: weekEnd.toISOString().split('T')[0]
+    };
+  }
+
+  // ---- RENDER TABLE ---------------
+  function renderTable() {
+    const tbody = document.getElementById('tableBody');
+    const tfoot = document.getElementById('periodTotal');
+    let periodBonus = 0;
+
+    let start = document.getElementById('filterStart').value;
+    let end = document.getElementById('filterEnd').value;
+
+    let filtered = entries.filter(e => {
+      let dt = e.date;
+      if (start && dt < start) return false;
+      if (end && dt > end) return false;
+      return true;
+    });
+
+    filtered.sort((a, b) => a.date.localeCompare(b.date));
+    if (filtered.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; color:#bbb;">No data yet</td></tr>`;
+      tfoot.innerText = formatMoney(0);
+      document.getElementById('periodBonus').innerText = formatMoney(0);
+      return;
+    }
+    let rows = "";
+    filtered.forEach((e, idx) => {
+      periodBonus += +e.bonus;
+      rows += `<tr>
+        <td>${e.date}</td>
+        <td>${e.day}</td>
+        <td>${e.client}</td>
+        <td>${e.well}</td>
+        <td>${e.ticket}</td>
+        <td>${formatMoney(e.bonus)}</td>
+        <td class="actions-col">
+          <button onclick="editEntry(${e.id})">Edit</button>
+          <button class="del-btn" onclick="delEntry(${e.id})">Delete</button>
+        </td>
+      </tr>`;
+    });
+    tbody.innerHTML = rows;
+    tfoot.innerText = formatMoney(periodBonus);
+    document.getElementById('periodBonus').innerText = formatMoney(periodBonus);
+
+    const yearNow = (new Date()).getFullYear();
+    let ytd = entries.filter(e => (new Date(e.date)).getFullYear() === yearNow).reduce((sum, v) => sum + (+v.bonus), 0);
+    document.getElementById('ytdBonus').innerText = formatMoney(ytd);
+  }
+
+  // ---- RENDER WEEKLY BREAKDOWN ---------------
+  function renderWeeklyBreakdown() {
+    let start = document.getElementById('filterStart').value;
+    let end = document.getElementById('filterEnd').value;
+
+    let filtered = entries.filter(e => {
+      let dt = e.date;
+      if (start && dt < start) return false;
+      if (end && dt > end) return false;
+      return true;
+    });
+
+    if (filtered.length === 0) {
+      document.getElementById('weeklyBreakdown').innerHTML = '<p style="color: #bbb; text-align: center;">No data yet</p>';
+      return;
+    }
+
+    // Group by week
+    let weekMap = {};
+    filtered.forEach(e => {
+      const date = new Date(e.date);
+      const week = getWeekNumber(date);
+      const year = date.getFullYear();
+      const key = `${year}-W${week}`;
+      if (!weekMap[key]) {
+        weekMap[key] = { entries: [], total: 0, week, year };
+      }
+      weekMap[key].entries.push(e);
+      weekMap[key].total += +e.bonus;
+    });
+
+    // Sort by week
+    let sorted = Object.entries(weekMap).sort((a, b) => {
+      const aYear = parseInt(a[0].split('-')[0]);
+      const bYear = parseInt(b[0].split('-')[0]);
+      if (aYear !== bYear) return aYear - bYear;
+      const aWeek = parseInt(a[0].split('-W')[1]);
+      const bWeek = parseInt(b[0].split('-W')[1]);
+      return aWeek - bWeek;
+    });
+
+    let html = '';
+    sorted.forEach(([key, data]) => {
+      const entryCount = data.entries.length;
+      html += `
+        <div class="breakdown-card">
+          <h3>Week ${data.week}, ${data.year}</h3>
+          <p>Entries: ${entryCount}</p>
+          <p>Total Bonus: <span class="breakdown-amount">${formatMoney(data.total)}</span></p>
+          <p style="margin-top: 10px; font-size: 12px; color: #999;">
+            ${data.entries.map(e => `${e.date} - ${e.client}: ${formatMoney(e.bonus)}`).join('<br/>')}
+          </p>
+        </div>
+      `;
+    });
+
+    document.getElementById('weeklyBreakdown').innerHTML = html;
+  }
+
+  // ---- RENDER MONTHLY BREAKDOWN ---------------
+  function renderMonthlyBreakdown() {
+    let start = document.getElementById('filterStart').value;
+    let end = document.getElementById('filterEnd').value;
+
+    let filtered = entries.filter(e => {
+      let dt = e.date;
+      if (start && dt < start) return false;
+      if (end && dt > end) return false;
+      return true;
+    });
+
+    if (filtered.length === 0) {
+      document.getElementById('monthlyBreakdown').innerHTML = '<p style="color: #bbb; text-align: center;">No data yet</p>';
+      return;
+    }
+
+    // Group by month
+    let monthMap = {};
+    filtered.forEach(e => {
+      const date = new Date(e.date);
+      const monthKey = e.date.substring(0, 7); // YYYY-MM
+      const monthName = getMonthName(e.date);
+      if (!monthMap[monthKey]) {
+        monthMap[monthKey] = { entries: [], total: 0, name: monthName };
+      }
+      monthMap[monthKey].entries.push(e);
+      monthMap[monthKey].total += +e.bonus;
+    });
+
+    // Sort by month
+    let sorted = Object.entries(monthMap).sort((a, b) => a[0].localeCompare(b[0]));
+
+    let html = '';
+    sorted.forEach(([key, data]) => {
+      const entryCount = data.entries.length;
+      html += `
+        <div class="breakdown-card">
+          <h3>${data.name}</h3>
+          <p>Entries: ${entryCount}</p>
+          <p>Total Bonus: <span class="breakdown-amount">${formatMoney(data.total)}</span></p>
+          <p style="margin-top: 10px; font-size: 12px; color: #999;">
+            ${data.entries.map(e => `${e.date} - ${e.client}: ${formatMoney(e.bonus)}`).join('<br/>')}
+          </p>
+        </div>
+      `;
+    });
+
+    document.getElementById('monthlyBreakdown').innerHTML = html;
+  }
+
+  // ---- TAB SWITCHING ---------------
+  function switchTab(tabName) {
+    // Hide all tabs
+    document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+
+    // Show selected tab
+    document.getElementById(tabName).classList.add('active');
+    event.target.classList.add('active');
+
+    // Render appropriate content
+    if (tabName === 'weekly') {
+      renderWeeklyBreakdown();
+    } else if (tabName === 'monthly') {
+      renderMonthlyBreakdown();
+    }
+  }
+
+  renderTable();
+
+  // -------- ADD ENTRIES --------
+  document.getElementById('addForm').addEventListener('submit', e => {
+    e.preventDefault();
+    let date = document.getElementById('addDate').value,
+      client = document.getElementById('addClient').value,
+      well = document.getElementById('addWell').value,
+      ticket = document.getElementById('addTicket').value,
+      bonus = parseFloat(document.getElementById('addBonus').value),
+      day = document.getElementById('addDay').value;
+    if (!date || !client || !well || !ticket || !bonus || !day) return alert('Fill all fields!');
+    entries.push({
+      id: Date.now(),
+      date, client, well, ticket, bonus, day
+    });
+    save(); renderTable();
+    e.target.reset();
+  });
+
+  // --- DELETE ------
+  function delEntry(id) {
+    if (confirm("Delete this entry?")) {
+      entries = entries.filter(e => e.id !== id);
+      save(); renderTable();
+    }
+  }
+
+  // --- EDIT -------
+  function editEntry(id) {
+    let idx = entries.findIndex(e => e.id === id);
+    let row = entries[idx];
+    let tr = [...document.querySelectorAll('#tableBody tr')].find(r => r.querySelector('button') && r.querySelector('button').onclick.toString().includes(id));
+    if (!tr) return;
+    tr.innerHTML = `
+      <td><input type="date" id="editDate" value="${row.date}" style="width:115px"></td>
+      <td><input type="text" id="editDay" value="${row.day}" style="width:85px"></td>
+      <td><input type="text" id="editClient" value="${row.client}" style="width:120px"></td>
+      <td><input type="text" id="editWell" value="${row.well}" style="width:92px"></td>
+      <td><input type="text" id="editTicket" value="${row.ticket}" style="width:85px"></td>
+      <td><input type="number" id="editBonus" value="${row.bonus}" style="width:85px"></td>
+      <td>
+        <button onclick="submitEdit(${id})">Save</button>
+        <button class="del-btn" onclick="renderTable()">Cancel</button>
+      </td>`;
+  }
+  function submitEdit(id) {
+    let idx = entries.findIndex(e => e.id === id);
+    let e = entries[idx];
+    e.date = document.getElementById('editDate').value;
+    e.day = document.getElementById('editDay').value;
+    e.client = document.getElementById('editClient').value;
+    e.well = document.getElementById('editWell').value;
+    e.ticket = document.getElementById('editTicket').value;
+    e.bonus = parseFloat(document.getElementById('editBonus').value);
+    save(); renderTable();
+  }
+
+  // ------- FILTER ---------
+  document.getElementById('filterStart').addEventListener('input', () => {
+    renderTable();
+    if (document.getElementById('weekly').classList.contains('active')) renderWeeklyBreakdown();
+    if (document.getElementById('monthly').classList.contains('active')) renderMonthlyBreakdown();
+  });
+  document.getElementById('filterEnd').addEventListener('input', () => {
+    renderTable();
+    if (document.getElementById('weekly').classList.contains('active')) renderWeeklyBreakdown();
+    if (document.getElementById('monthly').classList.contains('active')) renderMonthlyBreakdown();
+  });
+  document.getElementById('clearFilter').addEventListener('click', () => {
+    document.getElementById('filterStart').value = '';
+    document.getElementById('filterEnd').value = '';
+    renderTable();
+    if (document.getElementById('weekly').classList.contains('active')) renderWeeklyBreakdown();
+    if (document.getElementById('monthly').classList.contains('active')) renderMonthlyBreakdown();
+  });
+
+  // ---------- EXPORTS ----------
+  function exportCSV() {
+    let rows = [
+      ['Date', 'Day', 'Client', 'Well Name', 'Ticket #', 'Bonus']
+    ];
+    entries.forEach(e => {
+      rows.push([e.date, e.day, e.client, e.well, e.ticket, e.bonus]);
+    });
+    let csv = rows.map(x => x.map(y => '"' + String(y).replace(/"/g, '""') + '"').join(',')).join('\n');
+    let a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+    a.download = 'field-tracker.csv';
+    a.click();
+  }
+  function downloadTable() {
+    let html = document.getElementById('bonusTable').outerHTML;
+    let uri = 'data:application/vnd.ms-excel;base64,' + btoa('<html><head><meta charset="UTF-8"></head><body>' + html + '</body></html>');
+    let a = document.createElement('a');
+    a.href = uri;
+    a.download = 'field-tracker.xls';
+    a.click();
+  }
+</script>
+</body>
+</html>
